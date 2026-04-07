@@ -9,6 +9,12 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private LayerMask wallLayer;
     [SerializeField] private int maxJumps = 2;
+    [SerializeField] private float wallSlideSpeed = 1f;
+    //Настройки прыжка 
+    [SerializeField] private float wallJumpForceX = 8f;
+    [SerializeField] private float wallJumpForceY = 10f;
+    [SerializeField] private float wallJumpControlLockTime = 0.2f;
+    private float wallJumpTimer;
 
     private Rigidbody2D body;
     private Animator animator;
@@ -27,6 +33,15 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
+        if (wallJumpTimer > 0)
+        {
+            wallJumpTimer -= Time.deltaTime;
+        }
+        else
+        {
+            horizontalInput = Input.GetAxis("Horizontal");
+        }
+
         horizontalInput = Input.GetAxis("Horizontal");
 
         // Движение
@@ -59,7 +74,8 @@ public class PlayerMovement : MonoBehaviour
             if (onWall() && !isGrounded())
             {
                 body.gravityScale = 0;
-                body.linearVelocity = Vector2.zero;
+                //скольжение на стене
+                body.linearVelocity = new Vector2(0, -wallSlideSpeed);
             }
             else
                 body.gravityScale = 7;
@@ -85,9 +101,16 @@ public class PlayerMovement : MonoBehaviour
                 body.linearVelocity = new Vector2(-Mathf.Sign(transform.localScale.x) * 10, 0);
                 transform.localScale = new Vector3(-Mathf.Sign(transform.localScale.x), transform.localScale.y, transform.localScale.z);
             }
-            else
+            else if (onWall() && !isGrounded())
             {
-                body.linearVelocity = new Vector2(-Mathf.Sign(transform.localScale.x) * 3, 6);
+                float direction = -Mathf.Sign(transform.localScale.x);
+
+                body.linearVelocity = new Vector2(direction * wallJumpForceX, wallJumpForceY);
+
+                wallJumpTimer = wallJumpControlLockTime;
+                wallJumpCooldown = 0;
+
+                animator.SetTrigger("jump");
             }
 
             wallJumpCooldown = 0;
